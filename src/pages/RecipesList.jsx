@@ -1,9 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { Link, useSearchParams } from "react-router";
 
 export default function RecipesList() {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const search = searchParams.get("q") || "";
+
+  const searchRef = useRef(null);
 
   useEffect(() => {
     fetch("https://dummyjson.com/recipes")
@@ -12,7 +18,6 @@ export default function RecipesList() {
         return res.json();
       })
       .then((data) => {
-        console.log(data);
         setRecipes(data.recipes);
       })
       .catch((err) => {
@@ -23,18 +28,49 @@ export default function RecipesList() {
       });
   }, []);
 
+  useEffect(() => {
+    searchRef.current.focus();
+  }, []);
+
+  function handleSearch(e) {
+    const value = e.target.value;
+    if (value) {
+      setSearchParams({ q: value }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+  }
+
+  const filtered = recipes.filter((recipe) =>
+    recipe.name.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div>
       <h1>מתכונים</h1>
-         {loading && <p>טוען...</p>}
+
+      <input
+        ref={searchRef}
+        type="text"
+        placeholder="Search recipe"
+        value={search}
+        onChange={handleSearch}
+      />
+
+      {loading && <p>טוען...</p>}
       {error && <p>{error}</p>}
 
+      {!loading && !error && filtered.length === 0 && (
+        <p>לא נמצאו מתכונים</p>
+      )}
+
       <ul>
-        {recipes.map((recipe) => (
-          <li key={recipe.id}>{recipe.name}</li>
+        {filtered.map((recipe) => (
+          <li key={recipe.id}>
+            <Link to={`/recipes/${recipe.id}`}>{recipe.name}</Link>
+          </li>
         ))}
       </ul>
-    
     </div>
   );
 }
